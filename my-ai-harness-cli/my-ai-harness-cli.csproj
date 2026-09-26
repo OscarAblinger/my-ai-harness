@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net10.0</TargetFramework>
+        <RootNamespace>Ablinger.MyAiHarness.CLI</RootNamespace>
+        <ImplicitUsings>disable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\my-ai-harness-core\my-ai-harness-core.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="RadLine" Version="0.10.0" />
+      <PackageReference Include="Spectre.Console" Version="0.57.2" />
+      <PackageReference Include="System.CommandLine" Version="2.0.12" />
+    </ItemGroup>
+
+</Project>

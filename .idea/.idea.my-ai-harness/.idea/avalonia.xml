@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AvaloniaProject">
+    <option name="projectPerEditor">
+      <map>
+        <entry key="my-ai-harness-ui/Views/MainWindow.axaml" value="my-ai-harness-ui/my-ai-harness-ui.csproj" />
+      </map>
+    </option>
+  </component>
+</project>
