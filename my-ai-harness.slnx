@@ -1,5 +1,6 @@
 <Solution>
   <Project Path="my-ai-harness-cli/my-ai-harness-cli.csproj" />
   <Project Path="my-ai-harness-core/my-ai-harness-core.csproj" />
+  <Project Path="my-ai-harness-core.Tests/my-ai-harness-core.Tests.csproj" />
   <Project Path="my-ai-harness-ui/my-ai-harness-ui.csproj" />
 </Solution>

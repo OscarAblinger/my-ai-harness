@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
-using System.Transactions;
 
 namespace Ablinger.MyAiHarness.Core.Plugins.Interfaces;
 
@@ -17,13 +16,20 @@ public interface ISettings
         SettingsType Type,
         string Name,
         string? Description,
-        Func<object?> GetValue);
+        Func<object?> GetValue,
+        Action<object?> SetValue);
 
     public enum SettingsType
     {
         Bool,
         String,
-        EnvironmentVariable
+
+        /// <summary>
+        /// WARNING: The secret is still stored in plain text in the settings .json file.
+        /// It will, however, block it from being saved in project settings (unless the file is manually edited) so that
+        /// it's not accidentally checked into a repository.
+        /// </summary>
+        Secret,
     }
 
     public abstract class SimpleAttributeBasedSettings : ISettings
@@ -50,10 +56,26 @@ public interface ISettings
                     PropertyInfo pi => pi.GetValue(this),
                     _ => throw new ArgumentException(
                         "Argument is of unsupported Type. " +
-                        $"Can only happen if you extend ${typeof(SimpleAttributeBasedSettings)} with entries beyond " +
+                        $"Can only happen if you extend {typeof(SimpleAttributeBasedSettings)} with entries beyond " +
                         "fields & properties, but don't overwrite ToSettingsEntry.")
-                }
-            );
+                },
+                (newValue) =>
+                {
+                    switch (member)
+                    {
+                        case FieldInfo fi:
+                            fi.SetValue(this, newValue);
+                            break;
+                        case PropertyInfo pi:
+                            pi.SetValue(this, newValue);
+                            break;
+                        default:
+                            throw new ArgumentException(
+                                "Argument is of unsupported Type. " +
+                                $"Can only happen if you extend {typeof(SimpleAttributeBasedSettings)} with entries beyond " +
+                                "fields & properties, but don't overwrite ToSettingsEntry.");
+                    }
+                });
         }
 
         private static string GetId(MemberInfo memberInfo, Entry entry)

@@ -11,11 +11,13 @@ namespace Ablinger.MyAiHarness.CLI;
 public class ConsolePrompter : IPrompter
 {
     private readonly PromptProcessor promptProcessor;
+    private readonly CommandHandler commandHandler;
     private LineEditor editor;
     
-    public ConsolePrompter(PromptProcessor promptProcessor)
+    public ConsolePrompter(PromptProcessor promptProcessor, CommandHandler commandHandler)
     {
         this.promptProcessor = promptProcessor;
+        this.commandHandler = commandHandler;
         editor = new LineEditor()
         {
             MultiLine = true,
@@ -49,8 +51,7 @@ public class ConsolePrompter : IPrompter
 
         if (line.TrimStart().StartsWith('/'))
         {
-            // TODO
-            Console.WriteLine("Slash commands not implemented yet!");
+            commandHandler.Handle(line.TrimStart().TrimStart('/').Trim());
         }
         else
         {

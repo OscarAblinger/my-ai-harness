@@ -4,6 +4,7 @@ using System.CommandLine;
 using System.IO;
 using System.Reflection;
 using Ablinger.MyAiHarness.Core.Harness;
+using Ablinger.MyAiHarness.Core.Harness.FileAccess;
 using Ablinger.MyAiHarness.Core.Harness.Prompting;
 using Ablinger.MyAiHarness.Core.Harness.Prompting.Source.Vendors;
 using Ablinger.MyAiHarness.Core.Plugins;
@@ -47,19 +48,23 @@ public class Program
             return 1;
         }
 
-        var globalDir = parseResult.GetValue(globalDirectory);
-        var pluginLoader = CreatePluginLoader(globalDir, parseResult.GetValue(pluginDirectories));
-        var settingsLoader = CreateSettingsLoader(globalDir, parseResult.GetValue(settingsDirectory));
-
         var services = new ServiceCollection();
 
-        services.AddSingleton(pluginLoader);
-        services.AddSingleton(settingsLoader);
+        services.AddSingleton<IFileAccess, LocalFileAccess>();
+        services.AddSingleton<PluginLoader>();
+        services.AddSingleton<SettingsLoader>();
+        services.AddSingleton<CommandHandler>();
         services.AddSingleton<IPrompter, ConsolePrompter>();
 
         Harness.AddHarnessServices(services);
 
         var serviceProvider = services.BuildServiceProvider();
+
+        var globalDir = parseResult.GetValue(globalDirectory);
+        ConfigurePluginLoader(serviceProvider.GetRequiredService<PluginLoader>(), globalDir,
+            parseResult.GetValue(pluginDirectories));
+        ConfigureSettingsLoader(serviceProvider.GetRequiredService<SettingsLoader>(), globalDir,
+            parseResult.GetValue(settingsDirectory));
 
         var harness = new Harness(serviceProvider);
         harness.Start();
@@ -67,9 +72,9 @@ public class Program
         return 0;
     }
 
-    private static PluginLoader CreatePluginLoader(FileInfo? globalDir, List<DirectoryInfo>? pluginDirectories)
+    private static void ConfigurePluginLoader(PluginLoader pluginLoader, FileInfo? globalDir,
+        List<DirectoryInfo>? pluginDirectories)
     {
-        var pluginLoader = new PluginLoader();
         // always load global plugins
         var globalPath = Path.Combine(
             globalDir?.FullName ?? Path.GetDirectoryName(AppDomain.CurrentDomain.BaseDirectory)!,
@@ -85,27 +90,22 @@ public class Program
                 pluginLoader.LoadDirectory(defaultProjectDirectory);
             }
 
-            return pluginLoader;
+            return;
         }
 
         foreach (var pluginDirectory in pluginDirectories)
         {
             pluginLoader.LoadDirectory(pluginDirectory.FullName);
         }
-
-        return pluginLoader;
     }
 
-    private static SettingsLoader CreateSettingsLoader(FileInfo? globalDir, FileInfo? settingsDirectory)
+    private static void ConfigureSettingsLoader(SettingsLoader settingsLoader, FileInfo? globalDir,
+        FileInfo? settingsDirectory)
     {
-        var settingsLoader = new SettingsLoader();
-
         settingsLoader.LoadGlobalSettings(Path.Combine(
-            globalDir?.Name ?? Path.GetDirectoryName(AppDomain.CurrentDomain.BaseDirectory)!,
+            globalDir?.FullName ?? Path.GetDirectoryName(AppDomain.CurrentDomain.BaseDirectory)!,
             ".mahsettings.json"));
         settingsLoader.LoadProjectSettings(settingsDirectory?.Name ??
                                            Path.Combine(Directory.GetCurrentDirectory(), ".mahsettings.json"));
-
-        return settingsLoader;
     }
 }

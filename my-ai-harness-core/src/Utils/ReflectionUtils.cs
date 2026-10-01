@@ -32,5 +32,5 @@ public static class ReflectionUtils
     }
 
     public class TooManyImplementationsException(Type wantedInterface, List<Type> types) :
-        Exception($"Found multiple possible implementations for ${wantedInterface}: ${types}");
+        Exception($"Found multiple possible implementations for {wantedInterface}: {types}");
 }
