@@ -1,0 +1,113 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:my_ai_harness_ui.ViewModels"
+             xmlns:ae="clr-namespace:AvaloniaEdit;assembly=AvaloniaEdit"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="700" d:DesignHeight="140"
+             x:Class="my_ai_harness_ui.Views.MessageComposerView"
+             x:DataType="vm:MainViewModel">
+
+    <!--
+        Single-pane markdown *source* editor (AvaloniaEdit) with TextMate highlighting, including
+        per-language highlighting inside fenced code blocks.
+
+        Note: AvaloniaEdit's TextView measures to 0 when unconstrained, so the editor must sit in a
+        normally-constrained slot (MinHeight/MaxHeight), not inside a ScrollViewer. Its own
+        template ScrollViewer appears past MaxHeight; below that it grows with the content.
+    -->
+    <Border Classes="composer">
+        <Grid RowDefinitions="Auto,Auto">
+
+            <ae:TextEditor x:Name="Editor"
+                           Grid.Row="0"
+                           Margin="12,8,12,0"
+                           MinHeight="20"
+                           MaxHeight="240"
+                           Watermark="Write a message…  markdown is supported"
+                           WordWrap="True"
+                           ShowLineNumbers="False"
+                           Background="Transparent"
+                           BorderThickness="0"
+                           Foreground="#D4D4D4"
+                           FontFamily="{StaticResource MonoFont}"
+                           FontSize="13" />
+
+            <Grid Grid.Row="1" ColumnDefinitions="*,Auto" Margin="12,8,12,8">
+                <TextBlock Text="Ctrl + Enter to send"
+                           FontSize="11"
+                           Foreground="{StaticResource MutedTextBrush}"
+                           VerticalAlignment="Center" />
+
+                <Button Grid.Column="1"
+                        Classes="send"
+                        Command="{Binding SendCommand}"
+                        ToolTip.Tip="Send (Ctrl + Enter)"
+                        Cursor="Hand"
+                        VerticalAlignment="Center">
+                    <Path Stretch="Uniform"
+                          Width="16"
+                          Height="16"
+                          Data="M12 19V5M5 12l7-7 7 7" />
+                </Button>
+            </Grid>
+        </Grid>
+    </Border>
+
+    <UserControl.Styles>
+        <Style Selector="Border.composer">
+            <Setter Property="Background" Value="{StaticResource SurfaceBackgroundBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource SurfaceBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="12" />
+        </Style>
+
+        <!--
+            Send: transparent (same color as the composer surface) until hovered/pressed; the
+            icon dims while a reply is streaming. Uniform padding + a fixed-size icon = a stable
+            box every time.
+        -->
+        <Style Selector="Button.send">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="12,7" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.send:pointerover">
+            <Setter Property="Background" Value="{StaticResource ButtonHoverBackgroundBrush}" />
+        </Style>
+        <Style Selector="Button.send:pressed">
+            <Setter Property="Background" Value="{StaticResource ButtonPressedBackgroundBrush}" />
+        </Style>
+        <Style Selector="Button.send:disabled">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <!-- Fluent themes the presenter directly, so the states are mirrored there. -->
+        <Style Selector="Button.send:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{StaticResource ButtonHoverBackgroundBrush}" />
+        </Style>
+        <Style Selector="Button.send:pressed /template/ ContentPresenter">
+            <Setter Property="Background" Value="{StaticResource ButtonPressedBackgroundBrush}" />
+        </Style>
+        <Style Selector="Button.send:disabled /template/ ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+
+        <Style Selector="Button.send Path">
+            <Setter Property="Fill" Value="Transparent" />
+            <Setter Property="Stroke" Value="{StaticResource AccentBrush}" />
+            <Setter Property="StrokeThickness" Value="2" />
+            <Setter Property="StrokeLineCap" Value="Round" />
+            <Setter Property="StrokeJoin" Value="Round" />
+        </Style>
+        <Style Selector="Button.send:pointerover Path">
+            <Setter Property="Stroke" Value="#8FBFFF" />
+        </Style>
+        <Style Selector="Button.send:disabled Path">
+            <Setter Property="Stroke" Value="#55555F" />
+        </Style>
+    </UserControl.Styles>
+</UserControl>

@@ -1,0 +1,143 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:my_ai_harness_ui.ViewModels"
+             xmlns:md="clr-namespace:LiveMarkdown.Avalonia;assembly=LiveMarkdown.Avalonia"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="700" d:DesignHeight="160"
+             x:Class="my_ai_harness_ui.Views.ChatMessageView"
+             x:DataType="vm:ChatMessageViewModel">
+
+    <!--
+        Message block: header (role + time + copy) over the rendered markdown bubble.
+
+        Which side a message belongs to is expressed twice, so it can't be missed:
+        the block is aligned (user = left, assistant = right) *and* carries a small asymmetric
+        margin — user messages stop 16 px short of the right edge, assistant messages start 16 px
+        past the left edge. A long user bubble spans [L, R-16], a long assistant one [L+16, R], so
+        no two bubbles ever share a border line. MaxWidth keeps long replies readable.
+    -->
+    <Grid ColumnDefinitions="Auto,12,*" Margin="0,6">
+
+        <!-- Avatar slot: collapsed for now. Adding an avatar later = drop an Image in here. -->
+        <Border x:Name="AvatarSlot" Grid.Column="0" Width="0" Height="0"
+                IsVisible="False" Classes="avatar" />
+
+        <StackPanel Grid.Column="2"
+                    Spacing="6"
+                    MaxWidth="760"
+                    Classes="msg"
+                    Classes.assistant="{Binding IsAssistant}"
+                    Classes.user="{Binding IsUser}">
+
+            <StackPanel Orientation="Horizontal" Spacing="8" Classes="hdr">
+                <TextBlock Text="{Binding DisplayName}"
+                           FontWeight="SemiBold"
+                           FontSize="13"
+                           VerticalAlignment="Center" />
+                <TextBlock Text="{Binding TimestampText}"
+                           FontSize="11"
+                           Foreground="{StaticResource MutedTextBrush}"
+                           VerticalAlignment="Center" />
+
+                <!-- Copy the entire message (markdown source) to the clipboard. -->
+                <Button x:Name="CopyButton"
+                        Classes="copy"
+                        Click="OnCopyClick"
+                        ToolTip.Tip="Copy message"
+                        Cursor="Hand"
+                        VerticalAlignment="Center">
+                    <Path x:Name="CopyGlyph"
+                          Stretch="Uniform"
+                          Width="15"
+                          Height="15"
+                          Data="M11,9 H20 A2,2 0 0 1 22,11 V20 A2,2 0 0 1 20,22 H11 A2,2 0 0 1 9,20 V11 A2,2 0 0 1 11,9 Z M5,15 H4 A2,2 0 0 1 2,13 V4 A2,2 0 0 1 4,2 H13 A2,2 0 0 1 15,4 V5" />
+                </Button>
+            </StackPanel>
+
+            <Border Classes="msg"
+                    Classes.assistant="{Binding IsAssistant}"
+                    Classes.user="{Binding IsUser}">
+                <md:MarkdownRenderer MarkdownBuilder="{Binding Content}" />
+            </Border>
+        </StackPanel>
+    </Grid>
+
+    <UserControl.Styles>
+        <Style Selector="Border.msg">
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="Padding" Value="14,9,16,11" />
+        </Style>
+        <Style Selector="Border.msg.assistant">
+            <Setter Property="Background" Value="{StaticResource AssistantMessageBackgroundBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource SurfaceBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
+        <Style Selector="Border.msg.user">
+            <Setter Property="Background" Value="{StaticResource UserMessageBackgroundBrush}" />
+        </Style>
+
+        <!-- Side of the screen + the offset that keeps the two roles' borders apart. -->
+        <Style Selector="StackPanel.msg">
+            <Setter Property="HorizontalAlignment" Value="Left" />
+            <Setter Property="Margin" Value="0,0,16,0" />
+        </Style>
+        <Style Selector="StackPanel.msg.assistant">
+            <Setter Property="HorizontalAlignment" Value="Right" />
+            <Setter Property="Margin" Value="16,0,0,0" />
+        </Style>
+
+        <!-- Header line: role/time stay with the message, replies carry theirs to the right. -->
+        <Style Selector="StackPanel.msg > StackPanel.hdr">
+            <Setter Property="HorizontalAlignment" Value="Left" />
+        </Style>
+        <Style Selector="StackPanel.msg.assistant > StackPanel.hdr">
+            <Setter Property="HorizontalAlignment" Value="Right" />
+        </Style>
+
+        <!-- Copy button: transparent by default, lit only on hover/press, accent while "copied". -->
+        <Style Selector="Button.copy">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="6" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="MinHeight" Value="0" />
+        </Style>
+        <Style Selector="Button.copy:pointerover">
+            <Setter Property="Background" Value="{StaticResource ButtonHoverBackgroundBrush}" />
+        </Style>
+        <Style Selector="Button.copy:pressed">
+            <Setter Property="Background" Value="{StaticResource ButtonPressedBackgroundBrush}" />
+        </Style>
+        <!-- Fluent themes the presenter directly on hover, so the state is set there too. -->
+        <Style Selector="Button.copy:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="{StaticResource ButtonHoverBackgroundBrush}" />
+        </Style>
+        <Style Selector="Button.copy:pressed /template/ ContentPresenter">
+            <Setter Property="Background" Value="{StaticResource ButtonPressedBackgroundBrush}" />
+        </Style>
+
+        <Style Selector="Button.copy Path">
+            <Setter Property="Fill" Value="Transparent" />
+            <Setter Property="Stroke" Value="{StaticResource MutedTextBrush}" />
+            <Setter Property="StrokeThickness" Value="1.6" />
+            <Setter Property="StrokeLineCap" Value="Round" />
+            <Setter Property="StrokeJoin" Value="Round" />
+        </Style>
+        <Style Selector="Button.copy:pointerover Path">
+            <Setter Property="Stroke" Value="#E4E4EB" />
+        </Style>
+
+        <!-- Toggled-on state while the "copied" feedback is showing. -->
+        <Style Selector="Button.copy.copied">
+            <Setter Property="Background" Value="{StaticResource ButtonActiveBackgroundBrush}" />
+        </Style>
+        <Style Selector="Button.copy.copied /template/ ContentPresenter">
+            <Setter Property="Background" Value="{StaticResource ButtonActiveBackgroundBrush}" />
+        </Style>
+        <Style Selector="Button.copy.copied Path">
+            <Setter Property="Stroke" Value="#8FBFFF" />
+        </Style>
+    </UserControl.Styles>
+</UserControl>

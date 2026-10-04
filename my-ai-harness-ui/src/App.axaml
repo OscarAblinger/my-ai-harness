@@ -1,0 +1,109 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="my_ai_harness_ui.App"
+             xmlns:local="using:my_ai_harness_ui"
+             xmlns:md="clr-namespace:LiveMarkdown.Avalonia;assembly=LiveMarkdown.Avalonia"
+             xmlns:aeedit="clr-namespace:AvaloniaEdit.Editing;assembly=AvaloniaEdit"
+             RequestedThemeVariant="Dark">
+
+    <Application.DataTemplates>
+        <local:ViewLocator />
+    </Application.DataTemplates>
+
+    <!--
+        Resources come BEFORE Styles: StaticResource lookups inside the style setters below
+        are resolved while the styles are being parsed, so the font keys must exist by then.
+    -->
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceInclude Source="avares://LiveMarkdown.Avalonia/Defaults.axaml" />
+                <!--
+                    Fonts live in a nested merged dictionary: font resources declared directly
+                    on Application.Resources can fail to resolve (silently falling back to the
+                    default font). Static files only — Avalonia can't use variable fonts.
+                -->
+                <ResourceDictionary>
+                    <FontFamily x:Key="UiFont">avares://my-ai-harness-ui/Assets/Fonts/ClarityCity#Clarity City</FontFamily>
+                    <FontFamily x:Key="MonoFont">avares://my-ai-harness-ui/Assets/Fonts/FragmentMono#Fragment Mono</FontFamily>
+                </ResourceDictionary>
+            </ResourceDictionary.MergedDictionaries>
+
+            <!-- Surfaces: the window background is the darkest layer, side panels sit above it. -->
+            <SolidColorBrush x:Key="WindowBackgroundBrush">#16161B</SolidColorBrush>
+            <SolidColorBrush x:Key="PanelBackgroundBrush">#202027</SolidColorBrush>
+            <SolidColorBrush x:Key="SurfaceBackgroundBrush">#1C1C22</SolidColorBrush>
+            <SolidColorBrush x:Key="SurfaceBorderBrush">#2C2C36</SolidColorBrush>
+            <SolidColorBrush x:Key="SplitterBrush">#26262E</SolidColorBrush>
+            <SolidColorBrush x:Key="SplitterHoverBrush">#3A3A47</SolidColorBrush>
+
+            <!-- Accents -->
+            <SolidColorBrush x:Key="AccentBrush">#5B9BFF</SolidColorBrush>
+            <SolidColorBrush x:Key="MutedTextBrush">#8C8C99</SolidColorBrush>
+
+            <!--
+                Interaction: buttons are transparent (same color as whatever they sit on) and
+                become visible only on hover / press / toggled-on.
+            -->
+            <SolidColorBrush x:Key="ButtonHoverBackgroundBrush">#3A3A47</SolidColorBrush>
+            <SolidColorBrush x:Key="ButtonPressedBackgroundBrush">#2A2A33</SolidColorBrush>
+            <SolidColorBrush x:Key="ButtonActiveBackgroundBrush">#26405F</SolidColorBrush>
+
+            <!-- Message rows -->
+            <SolidColorBrush x:Key="UserMessageBackgroundBrush">#1E2532</SolidColorBrush>
+            <SolidColorBrush x:Key="AssistantMessageBackgroundBrush">#1C1C22</SolidColorBrush>
+        </ResourceDictionary>
+    </Application.Resources>
+
+    <Application.Styles>
+        <FluentTheme />
+        <StyleInclude Source="avares://LiveMarkdown.Avalonia/Styles.axaml" />
+        <StyleInclude Source="avares://AvaloniaEdit/Themes/Fluent/AvaloniaEdit.xaml" />
+
+        <!--
+            LiveMarkdown styles the wrap toggle of a code block ("Toggle wrap") but never gives
+            the copy button next to it a tooltip — add the missing hover text here rather than
+            forking the library's template.
+        -->
+        <Style Selector="md|CodeBlock /template/ Button#PART_CopyButton">
+            <Setter Property="ToolTip.Tip" Value="Copy code" />
+        </Style>
+
+        <!--
+            Fonts: Clarity City everywhere, Fragment Mono for code. Declared AFTER the
+            LiveMarkdown StyleInclude so they win (equal selectors + later position).
+            The two chains below mirror the library's own nested selectors exactly — the
+            library pins inline code to Consolas and list markers to Arial from inside
+            md|MarkdownRenderer, so a plain leaf selector would lose to them.
+        -->
+        <Style Selector="md|MarkdownTextBlock">
+            <Setter Property="FontFamily" Value="{StaticResource UiFont}" />
+        </Style>
+        <Style Selector="md|CodeBlock">
+            <Setter Property="FontFamily" Value="{StaticResource MonoFont}" />
+        </Style>
+        <Style Selector="md|MarkdownRenderer md|CodeInline">
+            <Setter Property="FontFamily" Value="{StaticResource MonoFont}" />
+        </Style>
+        <Style Selector="md|MarkdownRenderer md|MarkdownListGrid.ListBlock StackPanel.ListItemBlock TextBlock.ListBlockNumber">
+            <Setter Property="FontFamily" Value="{StaticResource UiFont}" />
+        </Style>
+        <Style Selector="md|MarkdownRenderer md|MarkdownListGrid.ListBlock StackPanel.ListItemBlock TextBlock.ListBlockBullet">
+            <Setter Property="FontFamily" Value="{StaticResource UiFont}" />
+        </Style>
+
+        <!-- Tooltips live in their own popup root, outside the window's inheritance chain. -->
+        <Style Selector="ToolTip">
+            <Setter Property="TextElement.FontFamily" Value="{StaticResource UiFont}" />
+        </Style>
+
+        <!--
+            The composer watermark is a bare TextBlock in AvaloniaEdit's TextArea template — it has
+            no FontFamily of its own, so it inherits MonoFont from the editor. The typed text (in
+            TextView) stays monospace; only the placeholder goes back to the UI font.
+        -->
+        <Style Selector="aeedit|TextArea /template/ TextBlock#PART_Watermark">
+            <Setter Property="FontFamily" Value="{StaticResource UiFont}" />
+        </Style>
+    </Application.Styles>
+</Application>

@@ -1,0 +1,91 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:my_ai_harness_ui.ViewModels"
+        xmlns:views="using:my_ai_harness_ui.Views"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="800"
+        x:Class="my_ai_harness_ui.Views.MainWindow"
+        x:DataType="vm:MainViewModel"
+        Icon="/Assets/avalonia-logo.ico"
+        Title="my-ai-harness"
+        Width="1200"
+        Height="800"
+        Background="{StaticResource WindowBackgroundBrush}"
+        TextElement.FontFamily="{StaticResource UiFont}">
+
+    <Design.DataContext>
+        <!-- This only sets the DataContext for the previewer in an IDE,
+             to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
+        <vm:MainViewModel />
+    </Design.DataContext>
+
+    <!-- Three areas: left panel | main chat | right panel, resizable via splitters. -->
+    <Grid ColumnDefinitions="260,Auto,*,Auto,320">
+
+        <!-- Left panel: empty for now, only a slightly lighter surface than the window. -->
+        <Border Grid.Column="0"
+                MinWidth="160"
+                Background="{StaticResource PanelBackgroundBrush}" />
+
+        <GridSplitter Grid.Column="1"
+                      Width="4"
+                      MinWidth="4"
+                      Background="{StaticResource SplitterBrush}" />
+
+        <!-- Main area: transcript over the composer. -->
+        <Grid Grid.Column="2" RowDefinitions="*,Auto">
+            <ScrollViewer x:Name="TranscriptScroller"
+                          Grid.Row="0"
+                          Padding="28,16,28,8"
+                          VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled">
+                <ItemsControl x:Name="TranscriptList"
+                              ItemsSource="{Binding Messages}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:ChatMessageViewModel">
+                            <views:ChatMessageView />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+
+            <!-- Empty-state hint, hidden as soon as the first message lands. -->
+            <TextBlock Grid.Row="0"
+                       IsVisible="{Binding !HasMessages}"
+                       IsHitTestVisible="False"
+                       Text="Send a message below to get started"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center"
+                       Foreground="{StaticResource MutedTextBrush}" />
+
+            <views:MessageComposerView x:Name="Composer" Grid.Row="1" Margin="28,8,28,22" />
+        </Grid>
+
+        <GridSplitter Grid.Column="3"
+                      Width="4"
+                      MinWidth="4"
+                      Background="{StaticResource SplitterBrush}" />
+
+        <!-- Right panel: empty for now, only a slightly lighter surface than the window. -->
+        <Border Grid.Column="4"
+                MinWidth="160"
+                Background="{StaticResource PanelBackgroundBrush}" />
+    </Grid>
+
+    <Window.Styles>
+        <Style Selector="GridSplitter">
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border Background="{TemplateBinding Background}" />
+                </ControlTemplate>
+            </Setter>
+        </Style>
+        <Style Selector="GridSplitter:pointerover /template/ Border">
+            <Setter Property="Background" Value="{StaticResource SplitterHoverBrush}" />
+        </Style>
+        <Style Selector="GridSplitter:pressed /template/ Border">
+            <Setter Property="Background" Value="{StaticResource AccentBrush}" />
+        </Style>
+    </Window.Styles>
+</Window>
