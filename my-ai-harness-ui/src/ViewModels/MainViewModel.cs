@@ -4,10 +4,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using my_ai_harness_ui.Models;
-using my_ai_harness_ui.Services;
+using Ablinger.MyAiHarness.UI.Models;
+using Ablinger.MyAiHarness.UI.Services;
 
-namespace my_ai_harness_ui.ViewModels;
+namespace Ablinger.MyAiHarness.UI.ViewModels;
 
 public partial class MainViewModel : ViewModelBase
 {

@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Threading;
 
-namespace my_ai_harness_ui.Services;
+namespace Ablinger.MyAiHarness.UI.Services;
 
 /// <summary>
 /// Produces an assistant reply for a given prompt. The mock implementation backs the UI until a

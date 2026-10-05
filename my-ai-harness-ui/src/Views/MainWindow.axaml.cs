@@ -3,9 +3,9 @@ using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Threading;
-using my_ai_harness_ui.ViewModels;
+using Ablinger.MyAiHarness.UI.ViewModels;
 
-namespace my_ai_harness_ui.Views;
+namespace Ablinger.MyAiHarness.UI.Views;
 
 public partial class MainWindow : Window
 {

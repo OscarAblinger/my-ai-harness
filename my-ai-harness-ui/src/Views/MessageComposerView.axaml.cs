@@ -4,10 +4,10 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using AvaloniaEdit.TextMate;
-using my_ai_harness_ui.ViewModels;
+using Ablinger.MyAiHarness.UI.ViewModels;
 using TextMateSharp.Grammars;
 
-namespace my_ai_harness_ui.Views;
+namespace Ablinger.MyAiHarness.UI.Views;
 
 public partial class MessageComposerView : UserControl
 {

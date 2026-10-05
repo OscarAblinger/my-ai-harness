@@ -1,8 +1,8 @@
 using System;
 using LiveMarkdown.Avalonia;
-using my_ai_harness_ui.Models;
+using Ablinger.MyAiHarness.UI.Models;
 
-namespace my_ai_harness_ui.ViewModels;
+namespace Ablinger.MyAiHarness.UI.ViewModels;
 
 /// <summary>
 /// One entry in the chat transcript. The markdown text lives in <see cref="Content"/>, an

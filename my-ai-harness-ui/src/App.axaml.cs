@@ -1,10 +1,10 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
-using my_ai_harness_ui.ViewModels;
-using my_ai_harness_ui.Views;
+using Ablinger.MyAiHarness.UI.ViewModels;
+using Ablinger.MyAiHarness.UI.Views;
 
-namespace my_ai_harness_ui;
+namespace Ablinger.MyAiHarness.UI;
 
 public partial class App : Application
 {

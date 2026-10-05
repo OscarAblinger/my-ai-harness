@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace my_ai_harness_ui.Services;
+namespace Ablinger.MyAiHarness.UI.Services;
 
 /// <summary>
 /// Fake reply source used until the harness backend is connected. It streams a canned markdown

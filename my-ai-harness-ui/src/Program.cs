@@ -1,7 +1,7 @@
 ﻿using Avalonia;
 using System;
 
-namespace my_ai_harness_ui;
+namespace Ablinger.MyAiHarness.UI;
 
 sealed class Program
 {

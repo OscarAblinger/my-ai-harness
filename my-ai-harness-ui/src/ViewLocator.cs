@@ -2,9 +2,9 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using Avalonia.Controls;
 using Avalonia.Controls.Templates;
-using my_ai_harness_ui.ViewModels;
+using Ablinger.MyAiHarness.UI.ViewModels;
 
-namespace my_ai_harness_ui;
+namespace Ablinger.MyAiHarness.UI;
 
 /// <summary>
 /// Given a view model, returns the corresponding view if possible.

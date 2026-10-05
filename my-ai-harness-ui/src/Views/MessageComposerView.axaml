@@ -1,11 +1,11 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:vm="using:my_ai_harness_ui.ViewModels"
+             xmlns:vm="using:Ablinger.MyAiHarness.UI.ViewModels"
              xmlns:ae="clr-namespace:AvaloniaEdit;assembly=AvaloniaEdit"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              mc:Ignorable="d" d:DesignWidth="700" d:DesignHeight="140"
-             x:Class="my_ai_harness_ui.Views.MessageComposerView"
+             x:Class="Ablinger.MyAiHarness.UI.Views.MessageComposerView"
              x:DataType="vm:MainViewModel">
 
     <!--

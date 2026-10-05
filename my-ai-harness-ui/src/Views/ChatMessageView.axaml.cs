@@ -4,9 +4,9 @@ using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Threading;
-using my_ai_harness_ui.ViewModels;
+using Ablinger.MyAiHarness.UI.ViewModels;
 
-namespace my_ai_harness_ui.Views;
+namespace Ablinger.MyAiHarness.UI.Views;
 
 public partial class ChatMessageView : UserControl
 {

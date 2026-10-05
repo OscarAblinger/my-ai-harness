@@ -1,4 +1,4 @@
-namespace my_ai_harness_ui.Models;
+namespace Ablinger.MyAiHarness.UI.Models;
 
 public enum ChatRole
 {
