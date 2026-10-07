@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace Ablinger.MyAiHarness.Core.Harness.FileAccess;
 
 public interface IFileAccess
@@ -16,4 +18,13 @@ public interface IFileAccess
     /// Creates the directory at <paramref name="path"/> including all missing parent directories.
     /// </summary>
     void CreateDirectory(string path);
+
+    /// <summary>
+    /// Like <see cref="System.IO.Directory.EnumerateDirectories(string)"/> but abstracted through this interface.
+    /// </summary>
+    IEnumerable<string> EnumerateDirectories(string path);
+
+    void DeleteDirectory(string directoryPath, bool recursive);
+    
+    void DeleteFile(string filePath);
 }

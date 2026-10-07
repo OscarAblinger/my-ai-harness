@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.IO;
 using Ablinger.MyAiHarness.Core.Plugins.Interfaces;
 
@@ -18,5 +19,20 @@ public class LocalFileAccess : IFileAccess
     public void CreateDirectory(string path)
     {
         Directory.CreateDirectory(path);
+    }
+
+    public IEnumerable<string> EnumerateDirectories(string path)
+    {
+        return Directory.EnumerateDirectories(path);
+    }
+
+    public void DeleteDirectory(string directoryPath, bool recursive)
+    {
+        Directory.Delete(directoryPath, recursive);
+    }
+
+    public void DeleteFile(string filePath)
+    {
+        File.Delete(filePath);
     }
 }

@@ -8,7 +8,9 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <PackageReference Include="DynamicData" Version="9.4.33" />
       <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.12" />
+      <PackageReference Include="System.Reactive" Version="7.0.0" />
       <PackageReference Include="Tomlyn" Version="2.10.1" />
     </ItemGroup>
 

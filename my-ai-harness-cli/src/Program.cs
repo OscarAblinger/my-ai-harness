@@ -78,13 +78,13 @@ public class Program
         // always load global plugins
         var globalPath = Path.Combine(
             globalDir?.FullName ?? Path.GetDirectoryName(AppDomain.CurrentDomain.BaseDirectory)!,
-            ".mah-plugins");
+            FileConstants.PluginsDir);
         pluginLoader.LoadDirectory(globalPath);
 
         // load default project plugins location if no others are specified
         if (pluginDirectories == null || pluginDirectories.Count == 0)
         {
-            var defaultProjectDirectory = Path.Combine(Directory.GetCurrentDirectory(), ".mah-plugins");
+            var defaultProjectDirectory = Path.Combine(Directory.GetCurrentDirectory(), FileConstants.PluginsDir);
             if (defaultProjectDirectory != globalPath)
             {
                 pluginLoader.LoadDirectory(defaultProjectDirectory);
@@ -104,8 +104,9 @@ public class Program
     {
         settingsLoader.LoadGlobalSettings(Path.Combine(
             globalDir?.FullName ?? Path.GetDirectoryName(AppDomain.CurrentDomain.BaseDirectory)!,
-            ".mahsettings.json"));
+            FileConstants.SettingsFileName));
         settingsLoader.LoadProjectSettings(settingsDirectory?.Name ??
-                                           Path.Combine(Directory.GetCurrentDirectory(), ".mahsettings.json"));
+                                           Path.Combine(Directory.GetCurrentDirectory(),
+                                               FileConstants.SettingsFileName));
     }
 }
