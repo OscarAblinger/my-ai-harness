@@ -1,4 +1,4 @@
-﻿namespace Ablinger.MyAiHarness.Core.Utils;
+﻿namespace Ablinger.MyAiHarness.Core.Utils.Serialisation;
 
 using System;
 using System.Collections.Generic;

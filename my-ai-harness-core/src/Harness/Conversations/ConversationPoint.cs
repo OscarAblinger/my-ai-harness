@@ -1,5 +1,6 @@
-﻿using System.ComponentModel;
+﻿using System;
 using System.Text.Json.Serialization;
+using Ablinger.MyAiHarness.Core.Utils.Serialisation;
 
 namespace Ablinger.MyAiHarness.Core.Harness.Conversations;
 
@@ -11,8 +12,10 @@ public abstract class ConversationPoint
     {
     }
     
+    [JsonConverter(typeof(ExistingElementLinker<Conversation>))]
     public required Conversation Conversation { get; init; }
 
+    [JsonConverter(typeof(ExistingElementLinker<ConversationMember>))]
     public required ConversationMember Author { get; init; }
 
     /// <summary>
@@ -23,6 +26,11 @@ public abstract class ConversationPoint
     /// <para>Generally, this should not be included in the prompt for LLMs.</para>
     /// </summary>
     public string? Source { get; init; }
+   
+    /// <summary>
+    /// In case of streams, this is the timestamp the answer started to be streamed.
+    /// </summary>
+    public required DateTime Timestamp { get; init; }
     
     // ==================== Implementations ====================
     public sealed class MessageConversationPoint : ConversationPoint
