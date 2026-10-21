@@ -1,6 +1,6 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
-using Ablinger.MyAiHarness.Core.Plugins.Interfaces;
 
 namespace Ablinger.MyAiHarness.Core.Harness.FileAccess;
 
@@ -26,6 +26,11 @@ public class LocalFileAccess : IFileAccess
         return Directory.EnumerateDirectories(path);
     }
 
+    public IEnumerable<string> EnumerateFiles(string projectPath)
+    {
+        return Directory.EnumerateFiles(projectPath);
+    }
+
     public void DeleteDirectory(string directoryPath, bool recursive)
     {
         Directory.Delete(directoryPath, recursive);
@@ -34,5 +39,15 @@ public class LocalFileAccess : IFileAccess
     public void DeleteFile(string filePath)
     {
         File.Delete(filePath);
+    }
+
+    public bool Exists(string path)
+    {
+        return Directory.Exists(path) || File.Exists(path);
+    }
+
+    public Stream OpenRead(string filePath)
+    {
+        return File.OpenRead(filePath);
     }
 }

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.IO;
 
 namespace Ablinger.MyAiHarness.Core.Harness.FileAccess;
 
@@ -23,8 +24,17 @@ public interface IFileAccess
     /// Like <see cref="System.IO.Directory.EnumerateDirectories(string)"/> but abstracted through this interface.
     /// </summary>
     IEnumerable<string> EnumerateDirectories(string path);
+    
+    IEnumerable<string> EnumerateFiles(string projectPath);
 
     void DeleteDirectory(string directoryPath, bool recursive);
     
     void DeleteFile(string filePath);
+    
+    /// <summary>
+    /// Returns true if the given path refers to an existing file OR directory.
+    /// </summary>
+    bool Exists(string path);
+
+    Stream OpenRead(string filePath);
 }

@@ -4,7 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
-using System.Reflection.Metadata;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Ablinger.MyAiHarness.Core.Harness.Conversations;
@@ -15,14 +14,14 @@ using DynamicData;
 
 namespace Ablinger.MyAiHarness.Core.Harness.Projects;
 
-public class FileSynchronisedProjectList
+public class FileSynchronisedProjectStore
 {
     private static readonly JsonSerializerOptions JsonSerializerOptions = new()
     {
         ReferenceHandler = ReferenceHandler.Preserve
     };
 
-    internal FileSynchronisedProjectList(string projectsPath, IFileAccess fileAccess,
+    internal FileSynchronisedProjectStore(string projectsPath, IFileAccess fileAccess,
         OnHarnessShutdownCallback onHarnessShutdownCallback)
     {
         this.projectsPath = projectsPath;
@@ -39,6 +38,15 @@ public class FileSynchronisedProjectList
             if (project != null)
             {
                 projects.Add(project);
+
+                foreach (var file in fileAccess.EnumerateFiles(project.Path))
+                {
+                    var conversationText = fileAccess.ReadAllText(file);
+                    var serializerOptions = new JsonSerializerOptions(JsonSerializerOptions);
+                    serializerOptions.Converters.Add(new ExistingElementStorageConverter([project]));
+                    var conversation = JsonSerializer.Deserialize<Conversation>(conversationText, serializerOptions);
+                    project.Conversations.Add(conversation);
+                }
             }
         }
 
@@ -51,25 +59,27 @@ public class FileSynchronisedProjectList
             .Subscribe(ReserialiseConversation);
 
         bool shouldWrite = false;
+        
         // Whenever projects or any of its descendants are changed, we want to reserialise/delete the project
-        Action<Conversation> addToBuffer = p =>
+        void AddToBuffer(Conversation p)
         {
             // ReSharper disable once AccessToModifiedClosure
             if (!shouldWrite) return;
             reserialiseBuffer.OnNext(p);
-        };
+        }
+
         var projectChangeSubscription = Projects
             // Projects
             .OnItemAdded(Reserialise)
             .OnItemRemoved(Delete, invokeOnUnsubscribe: false)
             // Conversations
             .TransformMany(p => p.Conversations)
-            .OnItemAdded(conv => addToBuffer(conv))
-            .OnItemRemoved(conv => DeleteConversation(conv), invokeOnUnsubscribe: false)
+            .OnItemAdded(AddToBuffer)
+            .OnItemRemoved(DeleteConversation, invokeOnUnsubscribe: false)
             // ConversationPoints
             .TransformMany(conv => conv.ConversationPoints)
-            .OnItemAdded(cp => addToBuffer(cp.Conversation))
-            .OnItemRemoved(cp => addToBuffer(cp.Conversation), invokeOnUnsubscribe: false)
+            .OnItemAdded(cp => AddToBuffer(cp.Conversation))
+            .OnItemRemoved(cp => AddToBuffer(cp.Conversation), invokeOnUnsubscribe: false)
             // Subscribe so the listeners actually get executed
             .Subscribe();
 
@@ -108,8 +118,7 @@ public class FileSynchronisedProjectList
             var project = new Project
             {
                 Name = name,
-                // TODO: ensure file system compatible name
-                Path = Path.Combine(projectsPath, name),
+                Path = PathMaker.FindUniquePath(fileAccess, projectsPath, name),
                 Global = true
             };
             // Adding it automatically creates and serialises the project
@@ -181,13 +190,11 @@ public class FileSynchronisedProjectList
 
             try
             {
-                fileAccess.CreateDirectory(Path.Combine(conversation.Project.Path,
-                    FileConstants.ProjectConversationsDir));
+                fileAccess.CreateDirectory(GetConversationsPath(conversation.Project));
                 var serializerOptions = new JsonSerializerOptions(JsonSerializerOptions);
                 serializerOptions.Converters.Add(new ExistingElementStorageConverter([conversation.Project]));
                 var projectJson = JsonSerializer.Serialize(conversation, JsonSerializerOptions);
-                // TODO: ensure file system compatible name
-                fileAccess.WriteAllText(Path.Combine(conversation.Project.Path, conversation.Name), projectJson);
+                fileAccess.WriteAllText(GetConversationPath(conversation), projectJson);
             }
             catch (Exception ex)
             {
@@ -202,13 +209,23 @@ public class FileSynchronisedProjectList
         {
             try
             {
-                // TODO: ensure file system compatible name
-                fileAccess.DeleteFile(Path.Combine(conversation.Project.Path, conversation.Name));
+                fileAccess.DeleteFile(GetConversationPath(conversation));
             }
             catch (Exception ex)
             {
                 Trace.TraceError($"Failed to delete conversation ${conversation}", ex);
             }
         }
+    }
+
+    private static string GetConversationsPath(Project project)
+    {
+        return Path.Combine(project.Path, FileConstants.ProjectConversationsDir);
+    }
+
+    private static string GetConversationPath(Conversation conversation)
+    {
+        return Path.Combine(conversation.Project.Path, FileConstants.ProjectConversationsDir,
+            PathMaker.MakeFileName(conversation.Name));
     }
 }

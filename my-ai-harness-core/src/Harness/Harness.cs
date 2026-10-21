@@ -40,11 +40,11 @@ public class Harness
         Projects = InitialiseProjects(settingsLoader, fileAccess);
     }
 
-    private FileSynchronisedProjectList InitialiseProjects(SettingsLoader settingsLoader, IFileAccess fileAccess)
+    private FileSynchronisedProjectStore InitialiseProjects(SettingsLoader settingsLoader, IFileAccess fileAccess)
     {
         var generalSettings = settingsLoader.LoadSettings<GeneralSettings>();
         var projectsPath = Path.Combine(generalSettings.GlobalPath, FileConstants.ProjectDir);
-        return new FileSynchronisedProjectList(projectsPath, fileAccess, serviceProvider.GetRequiredService<OnHarnessShutdownCallback>());
+        return new FileSynchronisedProjectStore(projectsPath, fileAccess, serviceProvider.GetRequiredService<OnHarnessShutdownCallback>());
     }
 
     public void Start()
@@ -67,5 +67,5 @@ public class Harness
             new ShutdownHandlerArgs(cancellationToken ?? CancellationToken.None));
     }
 
-    public FileSynchronisedProjectList Projects { get; private set; }
+    public FileSynchronisedProjectStore Projects { get; private set; }
 }

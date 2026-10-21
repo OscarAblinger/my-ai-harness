@@ -69,6 +69,7 @@ public class Program
         var harness = new Harness(serviceProvider);
         harness.Start();
 
+        harness.ShutdownCleanly();
         return 0;
     }
 

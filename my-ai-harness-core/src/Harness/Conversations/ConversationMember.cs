@@ -2,11 +2,9 @@
 
 namespace Ablinger.MyAiHarness.Core.Harness.Conversations;
 
-public class ConversationMember : ISerialisationIdentifiable
+public class ConversationMember
 {
     public required string Name { get; init; }
-    
-    public string SerialisationId => Name;
     
     public required bool IsHuman { get; init; }
 }

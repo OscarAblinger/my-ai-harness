@@ -15,7 +15,6 @@ public abstract class ConversationPoint
     [JsonConverter(typeof(ExistingElementLinker<Conversation>))]
     public required Conversation Conversation { get; init; }
 
-    [JsonConverter(typeof(ExistingElementLinker<ConversationMember>))]
     public required ConversationMember Author { get; init; }
 
     /// <summary>
