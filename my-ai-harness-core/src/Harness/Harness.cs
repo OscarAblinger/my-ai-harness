@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Ablinger.MyAiHarness.Core.Harness.Database;
 using Ablinger.MyAiHarness.Core.Harness.FileAccess;
 using Ablinger.MyAiHarness.Core.Harness.Projects;
 using Ablinger.MyAiHarness.Core.Harness.Prompting;
@@ -22,6 +23,7 @@ public class Harness
         services.AddSingleton<ILLMSource, OpenAILikeLLMSource>();
         services.AddSingleton<IOpenAILikeLLMSource, OpenAILikeLLMSource>();
         services.AddSingleton<OnHarnessShutdownCallback>();
+        services.AddSingleton<DatabaseBinder>();
     }
 
     private readonly ServiceProvider serviceProvider;
@@ -31,6 +33,7 @@ public class Harness
         this.serviceProvider = serviceProvider;
         
         var pluginLoader = serviceProvider.GetRequiredService<PluginLoader>();
+        // load plugins
         var plugins = pluginLoader.LoadAllPluginProviders(serviceProvider)
             .Select(pl => pl.GetPlugin())
             .ToList();

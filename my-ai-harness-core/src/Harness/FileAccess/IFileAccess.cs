@@ -1,40 +1,45 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Reactive;
 
 namespace Ablinger.MyAiHarness.Core.Harness.FileAccess;
 
 public interface IFileAccess
 {
-    /// <summary>
-    /// Reads the content of the file at <paramref name="path"/>.
-    /// </summary>
+    /// <inheritdoc cref="File.ReadAllText(string)"/>
     string ReadAllText(string path);
 
-    /// <summary>
-    /// Writes <paramref name="contents"/> to the file at <paramref name="path"/>, overwriting an existing file.
-    /// </summary>
+    /// <inheritdoc cref="File.WriteAllText(string, string)"/>
     void WriteAllText(string path, string contents);
 
-    /// <summary>
-    /// Creates the directory at <paramref name="path"/> including all missing parent directories.
-    /// </summary>
+    /// <inheritdoc cref="Directory.CreateDirectory(string)"/>
     void CreateDirectory(string path);
 
-    /// <summary>
-    /// Like <see cref="System.IO.Directory.EnumerateDirectories(string)"/> but abstracted through this interface.
-    /// </summary>
+    /// <inheritdoc cref="Directory.EnumerateDirectories(string)"/>
     IEnumerable<string> EnumerateDirectories(string path);
-    
+
+    /// <inheritdoc cref="Directory.EnumerateFiles(string)"/>
     IEnumerable<string> EnumerateFiles(string projectPath);
 
+    /// <inheritdoc cref="Directory.Delete(string, bool)"/>
     void DeleteDirectory(string directoryPath, bool recursive);
-    
+
+    /// <inheritdoc cref="File.Delete(string)"/>
     void DeleteFile(string filePath);
-    
+
     /// <summary>
     /// Returns true if the given path refers to an existing file OR directory.
     /// </summary>
     bool Exists(string path);
 
+    /// <inheritdoc cref="File.OpenRead(string)"/>
     Stream OpenRead(string filePath);
+
+    /// <summary>
+    /// Returns an observable of file system events, which are sent when the file is created, updated or deleted.
+    /// </summary>
+    /// <param name="path"></param>
+    /// <returns></returns>
+    IObservable<EventPattern<FileSystemEventArgs>> WatchFileChanges(string path);
 }

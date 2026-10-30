@@ -1,7 +1,7 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.Collections.ObjectModel;
+using System.Text.Json.Serialization;
 using Ablinger.MyAiHarness.Core.Harness.Conversations;
 using Ablinger.MyAiHarness.Core.Utils.Serialisation;
-using DynamicData;
 
 namespace Ablinger.MyAiHarness.Core.Harness.Projects;
 
@@ -16,5 +16,5 @@ public class Project : ISerialisationIdentifiable
     public required bool Global { get; init; }
     
     [JsonIgnore]
-    public SourceList<Conversation> Conversations { get; init; } = new();
+    public ObservableCollection<Conversation> Conversations { get; init; } = new();
 }
