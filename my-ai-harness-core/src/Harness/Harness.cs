@@ -24,6 +24,7 @@ public class Harness
         services.AddSingleton<IOpenAILikeLLMSource, OpenAILikeLLMSource>();
         services.AddSingleton<OnHarnessShutdownCallback>();
         services.AddSingleton<DatabaseBinder>();
+        services.AddSingleton<FileSynchronisedProjectStore2.FileSynchronisedProjectStoreProvider>();
     }
 
     private readonly ServiceProvider serviceProvider;
@@ -31,23 +32,23 @@ public class Harness
     public Harness(ServiceProvider serviceProvider)
     {
         this.serviceProvider = serviceProvider;
-        
+
         var pluginLoader = serviceProvider.GetRequiredService<PluginLoader>();
         // load plugins
         var plugins = pluginLoader.LoadAllPluginProviders(serviceProvider)
             .Select(pl => pl.GetPlugin())
             .ToList();
 
-        var settingsLoader = serviceProvider.GetRequiredService<SettingsLoader>();
-        var fileAccess = serviceProvider.GetRequiredService<IFileAccess>();
-        Projects = InitialiseProjects(settingsLoader, fileAccess);
+        Projects = InitialiseProjects();
     }
 
-    private FileSynchronisedProjectStore InitialiseProjects(SettingsLoader settingsLoader, IFileAccess fileAccess)
+    private FileSynchronisedProjectStore2 InitialiseProjects()
     {
+        var settingsLoader = serviceProvider.GetRequiredService<SettingsLoader>();
         var generalSettings = settingsLoader.LoadSettings<GeneralSettings>();
         var projectsPath = Path.Combine(generalSettings.GlobalPath, FileConstants.ProjectDir);
-        return new FileSynchronisedProjectStore(projectsPath, fileAccess, serviceProvider.GetRequiredService<OnHarnessShutdownCallback>());
+        return serviceProvider.GetRequiredService<FileSynchronisedProjectStore2.FileSynchronisedProjectStoreProvider>()
+            .createForPath(projectsPath);
     }
 
     public void Start()
@@ -70,5 +71,5 @@ public class Harness
             new ShutdownHandlerArgs(cancellationToken ?? CancellationToken.None));
     }
 
-    public FileSynchronisedProjectStore Projects { get; private set; }
+    public FileSynchronisedProjectStore2 Projects { get; private set; }
 }

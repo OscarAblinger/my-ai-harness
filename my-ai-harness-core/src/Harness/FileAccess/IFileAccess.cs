@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Reactive;
 
@@ -37,9 +38,17 @@ public interface IFileAccess
     Stream OpenRead(string filePath);
 
     /// <summary>
-    /// Returns an observable of file system events, which are sent when the file is created, updated or deleted.
+    /// Returns an observable of file system events, which are sent when the file is created, updated, renamed, or deleted.
     /// </summary>
-    /// <param name="path"></param>
-    /// <returns></returns>
-    IObservable<EventPattern<FileSystemEventArgs>> WatchFileChanges(string path);
+    /// <param name="path">The path to the file or directory to watch.</param>
+    /// <param name="opts">Options to further specify the watch behaviour.</param>
+    /// <returns>An observable that updates as the contents do.</returns>
+    IObservable<EventPattern<FileSystemEventArgs>> WatchFileChanges(string path, FileWatchOptions? opts = null);
+
+    public record struct FileWatchOptions(ICollection<string> Filters, bool IncludeSubdirectories)
+    {
+        public FileWatchOptions() : this([], false) {}
+        
+        public FileWatchOptions(params List<string> filters) : this(filters, false) {}
+    }
 }

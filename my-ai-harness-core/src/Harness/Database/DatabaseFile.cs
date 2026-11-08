@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
@@ -13,8 +14,12 @@ using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Ablinger.MyAiHarness.Core.Harness.Database;
 
-public class DatabaseFile<T> : IDisposable
-    where T : ObservableObject
+public interface IDatabaseFile<out T> : IDisposable
+{
+    IObservable<T> AsObservable { get; }
+}
+
+public class AbstractDatabaseFile<T> : IDatabaseFile<T>
 {
     private static readonly JsonSerializerOptions JsonSerializerOptions = new()
     {
@@ -25,18 +30,17 @@ public class DatabaseFile<T> : IDisposable
     private readonly IFileAccess fileAccess;
     private readonly DatabaseBinder databaseBinder;
     private readonly string path;
-    private readonly Func<T> defaultCreator;
+    private readonly Func<string, T> defaultCreator;
 
     private BehaviorSubject<(T, JsonNode)>? currentValueSubject;
 
-    public DatabaseFile(IFileAccess fileAccess, DatabaseBinder databaseBinder, string path, Func<T> defaultCreator)
+    protected AbstractDatabaseFile(IFileAccess fileAccess, DatabaseBinder databaseBinder, string path,
+        Func<string, T> defaultCreator)
     {
         this.fileAccess = fileAccess;
         this.databaseBinder = databaseBinder;
         this.path = path;
         this.defaultCreator = defaultCreator;
-
-        databaseBinder.BindToFile<T>(fileAccess, path, Invalidate);
     }
 
     public IObservable<T> AsObservable => Observable.Defer(GetCurrentValueSubject).Select(tuple => tuple.Item1);
@@ -47,20 +51,52 @@ public class DatabaseFile<T> : IDisposable
         return currentValueSubject;
     }
 
+    protected bool HasValue(T value)
+    {
+        if (currentValueSubject == null || value == null)
+        {
+            return false;
+        }
+
+        return value.Equals(currentValueSubject.Value.Item1);
+    }
+
     public void Dispose()
     {
         currentValueSubject?.Dispose();
         disposables.Dispose();
     }
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <returns></returns>
-    /// <exception cref="DatabaseFile{T}.InvalidDatabasePath">The given path is not valid.</exception>
+    /// <exception cref="AbstractDatabaseFile{T}.InvalidDatabasePath">The given path is not valid.</exception>
     /// <exception cref="IOException">An I/O error occurred while opening the file.</exception>
     /// <exception cref="NotSupportedException">If type `T` cannot be serialised or deserialised.</exception>
     private (T, JsonNode) GetOrWriteValueFromFile()
+    {
+        if (TryGetFromFile(out var fromFile))
+        {
+            return ((T, JsonNode))fromFile;
+        }
+
+        var value = defaultCreator(path);
+        BindObject(value);
+        Save(value);
+        return (value, JsonSerializer.SerializeToNode(value, JsonSerializerOptions)!);
+    }
+
+    protected void SetValue(T value)
+    {
+        if (currentValueSubject != null && currentValueSubject.TryGetValue(out var currValue) &&
+            ReferenceEquals(currValue.Item1, value))
+        {
+            return;
+        }
+
+        BindObject(value);
+        Save(value);
+        Invalidate();
+    }
+
+    private bool TryGetFromFile([NotNullWhen(true)] out (T, JsonNode)? fromFile)
     {
         try
         {
@@ -73,13 +109,13 @@ public class DatabaseFile<T> : IDisposable
                     var deserializedValue = deserializedNode.Deserialize<T>(JsonSerializerOptions);
                     if (deserializedValue != null)
                     {
-                        disposables.Add(databaseBinder.BindObject(deserializedValue, WriteChangedValue));
-
-                        return (deserializedValue, deserializedNode);
+                        BindObject(deserializedValue);
+                        fromFile = (deserializedValue, deserializedNode);
+                        return true;
                     }
                 }
             }
-            catch (JsonException exception)
+            catch (JsonException)
             {
                 // The JSON is invalid.
                 // -or-
@@ -97,13 +133,18 @@ public class DatabaseFile<T> : IDisposable
         catch (Exception exception)
             when (exception is DirectoryNotFoundException or FileNotFoundException)
         {
-            // `value` is `null` here so we will create the file in the next `if`
         }
 
-        var value = defaultCreator();
-        disposables.Add(databaseBinder.BindObject(value, WriteChangedValue));
-        Save(value);
-        return (value, JsonSerializer.SerializeToNode(value, JsonSerializerOptions)!);
+        fromFile = null;
+        return false;
+    }
+
+    private void BindObject(T deserializedValue)
+    {
+        if (deserializedValue is ObservableObject observableValue)
+        {
+            disposables.Add(databaseBinder.BindObject(observableValue, WriteChangedValue));
+        }
     }
 
     private void Save(T value)
@@ -113,7 +154,7 @@ public class DatabaseFile<T> : IDisposable
         fileAccess.WriteAllText(path, serializedValue);
     }
 
-    private void Invalidate()
+    protected void Invalidate()
     {
         if (currentValueSubject == null)
         {
@@ -133,4 +174,13 @@ public class DatabaseFile<T> : IDisposable
     }
 
     public class InvalidDatabasePath(string path, Exception exception) : Exception;
+}
+
+public class FileWatchingDatabaseFile<T> : AbstractDatabaseFile<T>
+{
+    public FileWatchingDatabaseFile(IFileAccess fileAccess, DatabaseBinder databaseBinder, string path,
+        Func<string, T> defaultCreator) : base(fileAccess, databaseBinder, path, defaultCreator)
+    {
+        databaseBinder.BindToFile(fileAccess, path, Invalidate);
+    }
 }

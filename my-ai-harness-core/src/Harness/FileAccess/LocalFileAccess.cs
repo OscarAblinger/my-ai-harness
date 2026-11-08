@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reactive;
 using System.Reactive.Linq;
+using DynamicData;
 
 namespace Ablinger.MyAiHarness.Core.Harness.FileAccess;
 
@@ -53,10 +54,14 @@ public class LocalFileAccess : IFileAccess
         return File.OpenRead(filePath);
     }
 
-    public IObservable<EventPattern<FileSystemEventArgs>> WatchFileChanges(string path)
+    public IObservable<EventPattern<FileSystemEventArgs>> WatchFileChanges(string path, IFileAccess.FileWatchOptions? opts = null)
     {
         var fileSystemWatcher = new FileSystemWatcher(path);
-        fileSystemWatcher.NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.CreationTime;
+        
+        opts ??= new IFileAccess.FileWatchOptions();
+        fileSystemWatcher.NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.CreationTime | NotifyFilters.FileName;
+        fileSystemWatcher.Filters.Add(opts.Value.Filters);
+        fileSystemWatcher.IncludeSubdirectories = opts.Value.IncludeSubdirectories;
 
         return Observable.FromEventPattern<FileSystemEventArgs>(
             h =>
@@ -64,12 +69,14 @@ public class LocalFileAccess : IFileAccess
                 fileSystemWatcher.Created += h.Invoke;
                 fileSystemWatcher.Changed += h.Invoke;
                 fileSystemWatcher.Deleted += h.Invoke;
+                fileSystemWatcher.Renamed += h.Invoke;
             },
             h =>
             {
                 fileSystemWatcher.Created -= h.Invoke;
                 fileSystemWatcher.Changed -= h.Invoke;
                 fileSystemWatcher.Deleted -= h.Invoke;
+                fileSystemWatcher.Renamed -= h.Invoke;
             });
     }
 }
