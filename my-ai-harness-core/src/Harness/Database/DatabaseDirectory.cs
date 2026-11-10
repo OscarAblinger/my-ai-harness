@@ -10,17 +10,17 @@ public class DatabaseDirectory<T> : IDisposable
 {
     private readonly IFileAccess fileAccess;
     private readonly DatabaseBinder databaseBinder;
-    private readonly Func<string, T> defaultCreator;
+    private readonly IDbOptions<T> dbOptions;
     private readonly IChildPathTransformer childPathTransformer;
     private readonly SourceCache<DirectoryWatchedDatabaseFile, string> children;
 
     public DatabaseDirectory(IFileAccess fileAccess, DatabaseBinder databaseBinder, string path,
-        Func<string, T> defaultCreator,
+        IDbOptions<T> dbOptions,
         IChildPathTransformer? childPathTransformer = null, IFileAccess.FileWatchOptions? fileWatchOptions = null)
     {
         this.fileAccess = fileAccess;
         this.databaseBinder = databaseBinder;
-        this.defaultCreator = defaultCreator;
+        this.dbOptions = dbOptions;
         this.childPathTransformer = childPathTransformer ?? IChildPathTransformer.NoTransformChildPathTransformer;
 
         children = new(dbf => dbf.Key);
@@ -42,7 +42,7 @@ public class DatabaseDirectory<T> : IDisposable
                                     if (selectedPath != null)
                                     {
                                         edit.AddOrUpdate(new DirectoryWatchedDatabaseFile(filePath,
-                                            fileAccess, databaseBinder, selectedPath, defaultCreator));
+                                            fileAccess, databaseBinder, selectedPath, dbOptions));
                                     }
                                 });
                         });
@@ -72,7 +72,7 @@ public class DatabaseDirectory<T> : IDisposable
         {
             var directoryWatchedDatabaseFile = new DirectoryWatchedDatabaseFile(
                 childPathTransformer.TransformToChildPath(relativePath),
-                fileAccess, databaseBinder, relativePath, defaultCreator);
+                fileAccess, databaseBinder, relativePath, dbOptions);
             directoryWatchedDatabaseFile.SetValue(value);
             edit.AddOrUpdate(directoryWatchedDatabaseFile);
         });
@@ -109,8 +109,8 @@ public class DatabaseDirectory<T> : IDisposable
         IFileAccess fileAccess,
         DatabaseBinder databaseBinder,
         string path,
-        Func<string, T> defaultCreator)
-        : AbstractDatabaseFile<T>(fileAccess, databaseBinder, path, defaultCreator)
+        IDbOptions<T> dbOptions)
+        : AbstractDatabaseFile<T>(fileAccess, databaseBinder, path, dbOptions)
     {
         public new void Invalidate()
         {

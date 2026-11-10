@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Text.Json.Serialization;
 using Ablinger.MyAiHarness.Core.Utils.Serialisation;
+using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Ablinger.MyAiHarness.Core.Harness.Conversations;
 
 [JsonDerivedType(typeof(MessageConversationPoint), typeDiscriminator: "message")]
 [JsonDerivedType(typeof(ThinkingConversationPoint), typeDiscriminator: "thinking")]
-public abstract class ConversationPoint
+public abstract class ConversationPoint : ObservableObject
 {
     private ConversationPoint()
     {

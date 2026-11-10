@@ -24,7 +24,8 @@ public class Harness
         services.AddSingleton<IOpenAILikeLLMSource, OpenAILikeLLMSource>();
         services.AddSingleton<OnHarnessShutdownCallback>();
         services.AddSingleton<DatabaseBinder>();
-        services.AddSingleton<FileSynchronisedProjectStore2.FileSynchronisedProjectStoreProvider>();
+        services.AddSingleton<DbProvider>();
+        services.AddSingleton<FileSynchronisedProjectStore.FileSynchronisedProjectStoreProvider>();
     }
 
     private readonly ServiceProvider serviceProvider;
@@ -42,13 +43,13 @@ public class Harness
         Projects = InitialiseProjects();
     }
 
-    private FileSynchronisedProjectStore2 InitialiseProjects()
+    private FileSynchronisedProjectStore InitialiseProjects()
     {
         var settingsLoader = serviceProvider.GetRequiredService<SettingsLoader>();
         var generalSettings = settingsLoader.LoadSettings<GeneralSettings>();
         var projectsPath = Path.Combine(generalSettings.GlobalPath, FileConstants.ProjectDir);
-        return serviceProvider.GetRequiredService<FileSynchronisedProjectStore2.FileSynchronisedProjectStoreProvider>()
-            .createForPath(projectsPath);
+        return serviceProvider.GetRequiredService<FileSynchronisedProjectStore.FileSynchronisedProjectStoreProvider>()
+            .CreateForPath(projectsPath);
     }
 
     public void Start()
@@ -71,5 +72,5 @@ public class Harness
             new ShutdownHandlerArgs(cancellationToken ?? CancellationToken.None));
     }
 
-    public FileSynchronisedProjectStore2 Projects { get; private set; }
+    public FileSynchronisedProjectStore Projects { get; private set; }
 }

@@ -30,17 +30,17 @@ public class AbstractDatabaseFile<T> : IDatabaseFile<T>
     private readonly IFileAccess fileAccess;
     private readonly DatabaseBinder databaseBinder;
     private readonly string path;
-    private readonly Func<string, T> defaultCreator;
+    private readonly IDbOptions<T> dbOptions;
 
     private BehaviorSubject<(T, JsonNode)>? currentValueSubject;
 
     protected AbstractDatabaseFile(IFileAccess fileAccess, DatabaseBinder databaseBinder, string path,
-        Func<string, T> defaultCreator)
+        IDbOptions<T> dbOptions)
     {
         this.fileAccess = fileAccess;
         this.databaseBinder = databaseBinder;
         this.path = path;
-        this.defaultCreator = defaultCreator;
+        this.dbOptions = dbOptions;
     }
 
     public IObservable<T> AsObservable => Observable.Defer(GetCurrentValueSubject).Select(tuple => tuple.Item1);
@@ -77,7 +77,7 @@ public class AbstractDatabaseFile<T> : IDatabaseFile<T>
             return ((T, JsonNode))fromFile;
         }
 
-        var value = defaultCreator(path);
+        var value = dbOptions.InitialiseNewValue(dbOptions.CreateDefaultValue(path));
         BindObject(value);
         Save(value);
         return (value, JsonSerializer.SerializeToNode(value, JsonSerializerOptions)!);
@@ -109,6 +109,7 @@ public class AbstractDatabaseFile<T> : IDatabaseFile<T>
                     var deserializedValue = deserializedNode.Deserialize<T>(JsonSerializerOptions);
                     if (deserializedValue != null)
                     {
+                        dbOptions.InitialiseNewValue(deserializedValue);
                         BindObject(deserializedValue);
                         fromFile = (deserializedValue, deserializedNode);
                         return true;
@@ -179,7 +180,7 @@ public class AbstractDatabaseFile<T> : IDatabaseFile<T>
 public class FileWatchingDatabaseFile<T> : AbstractDatabaseFile<T>
 {
     public FileWatchingDatabaseFile(IFileAccess fileAccess, DatabaseBinder databaseBinder, string path,
-        Func<string, T> defaultCreator) : base(fileAccess, databaseBinder, path, defaultCreator)
+        IDbOptions<T> dbOptions) : base(fileAccess, databaseBinder, path, dbOptions)
     {
         databaseBinder.BindToFile(fileAccess, path, Invalidate);
     }

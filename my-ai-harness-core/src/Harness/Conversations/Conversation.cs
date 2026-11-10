@@ -4,20 +4,21 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Ablinger.MyAiHarness.Core.Harness.Projects;
 using Ablinger.MyAiHarness.Core.Utils.Serialisation;
+using CommunityToolkit.Mvvm.ComponentModel;
 using DynamicData;
 
 namespace Ablinger.MyAiHarness.Core.Harness.Conversations;
 
 [JsonConverter(typeof(ConversationConverterFactory))]
-public readonly record struct Conversation : ISerialisationIdentifiable
+public class Conversation : ObservableObject, ISerialisationIdentifiable
 {
     public required Project Project { get; init; }
 
     public required string Name { get; init; }
 
-    public string SerialisationId => Name;
+    public string SerialisationId { get; init; } = Guid.NewGuid().ToString();
 
-    public required SourceList<ConversationPoint> ConversationPoints { get; init; }
+    public required IObservableList<ConversationPoint> ConversationPoints { get; init; }
 }
 
 /// <summary>

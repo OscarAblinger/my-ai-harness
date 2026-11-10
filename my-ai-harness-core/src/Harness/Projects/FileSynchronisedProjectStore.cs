@@ -1,105 +1,100 @@
 ﻿using System;
-using System.Diagnostics;
 using System.IO;
-using System.Linq;
-using System.Reactive.Linq;
-using System.Reactive.Subjects;
+using System.Reactive.Disposables;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Ablinger.MyAiHarness.Core.Harness.Conversations;
+using Ablinger.MyAiHarness.Core.Harness.Database;
 using Ablinger.MyAiHarness.Core.Harness.FileAccess;
 using Ablinger.MyAiHarness.Core.Harness.Shutdown;
-using Ablinger.MyAiHarness.Core.Utils.Serialisation;
 using DynamicData;
 
 namespace Ablinger.MyAiHarness.Core.Harness.Projects;
 
 public class FileSynchronisedProjectStore
 {
+    public class FileSynchronisedProjectStoreProvider(
+        IFileAccess fileAccess,
+        DbProvider dbProvider,
+        OnHarnessShutdownCallback onHarnessShutdownCallback)
+    {
+        public FileSynchronisedProjectStore CreateForPath(string projectsPath)
+        {
+            return new FileSynchronisedProjectStore(projectsPath, fileAccess, dbProvider,
+                onHarnessShutdownCallback);
+        }
+    }
+
     private static readonly JsonSerializerOptions JsonSerializerOptions = new()
     {
         ReferenceHandler = ReferenceHandler.Preserve
     };
 
-    internal FileSynchronisedProjectStore(string projectsPath, IFileAccess fileAccess,
-        OnHarnessShutdownCallback onHarnessShutdownCallback)
+    public IObservableList<IObservable<Project>> Projects { get; init; }
+    
+    private readonly CompositeDisposable compositeDisposable = new();
+    private readonly string projectsPath;
+    private readonly IFileAccess fileAccess;
+    private readonly DbProvider dbProvider;
+    private readonly DatabaseDirectory<Project> dbDirectory;
+
+    private FileSynchronisedProjectStore(string projectsPath, IFileAccess fileAccess,
+        DbProvider dbProvider, OnHarnessShutdownCallback onHarnessShutdownCallback)
     {
         this.projectsPath = projectsPath;
         this.fileAccess = fileAccess;
-        this.onHarnessShutdownCallback = onHarnessShutdownCallback;
+        this.dbProvider = dbProvider;
 
-        projects = new SourceList<Project>();
-        foreach (var projectDir in fileAccess.EnumerateDirectories(projectsPath))
-        {
-            var project =
-                JsonSerializer.Deserialize<Project>(
-                    File.OpenRead(Path.Combine(projectDir, FileConstants.ProjectFileName)),
-                    JsonSerializerOptions);
-            if (project != null)
+        onHarnessShutdownCallback.OnShutdown += (_, _) => compositeDisposable.Dispose();
+
+        IDbOptions<Project> dbOptions = new LambdaBasedDbOption<Project>(
+            path => new Project()
             {
-                projects.Add(project);
+                Name = Path.GetFileNameWithoutExtension(path),
+                Path = path,
+                Global = true
+            },
+            BindAndInitialiseConversations
+        );
 
-                foreach (var file in fileAccess.EnumerateFiles(project.Path))
-                {
-                    var conversationText = fileAccess.ReadAllText(file);
-                    var serializerOptions = new JsonSerializerOptions(JsonSerializerOptions);
-                    serializerOptions.Converters.Add(new ExistingElementStorageConverter([project]));
-                    var conversation = JsonSerializer.Deserialize<Conversation>(conversationText, serializerOptions);
-                    project.Conversations.Add(conversation);
-                }
-            }
-        }
+        dbDirectory = dbProvider.CreateDbDirectory(projectsPath, dbOptions, ProjectPathFileTransformer,
+            new IFileAccess.FileWatchOptions([], true));
+        compositeDisposable.Add(dbDirectory);
 
-        Projects = projects.Connect();
-
-        var reserialiseBuffer = new Subject<Conversation>();
-        var reserialiseBufferSubscription = reserialiseBuffer
-            .Buffer(TimeSpan.FromMilliseconds(100))
-            .SelectMany(batch => batch.Distinct())
-            .Subscribe(ReserialiseConversation);
-
-        bool shouldWrite = false;
-        
-        // Whenever projects or any of its descendants are changed, we want to reserialise/delete the project
-        void AddToBuffer(Conversation p)
-        {
-            // ReSharper disable once AccessToModifiedClosure
-            if (!shouldWrite) return;
-            reserialiseBuffer.OnNext(p);
-        }
-
-        var projectChangeSubscription = Projects
-            // Projects
-            .OnItemAdded(Reserialise)
-            .OnItemRemoved(Delete, invokeOnUnsubscribe: false)
-            // Conversations
-            .TransformMany(p => p.Conversations)
-            .OnItemAdded(AddToBuffer)
-            .OnItemRemoved(DeleteConversation, invokeOnUnsubscribe: false)
-            // ConversationPoints
-            .TransformMany(conv => conv.ConversationPoints)
-            .OnItemAdded(cp => AddToBuffer(cp.Conversation))
-            .OnItemRemoved(cp => AddToBuffer(cp.Conversation), invokeOnUnsubscribe: false)
-            // Subscribe so the listeners actually get executed
-            .Subscribe();
-
-        // activating the Write only after subscribing so that the initial loading of all projects does not trigger
-        // serialisation
-        shouldWrite = true;
-
-        onHarnessShutdownCallback.OnShutdown += (sender, args) =>
-        {
-            reserialiseBufferSubscription.Dispose();
-            projectChangeSubscription.Dispose();
-        };
+        Projects = dbDirectory.AsObservable
+            .Connect()
+            .Transform(dbFile => dbFile.AsObservable)
+            .AsObservableList();
     }
 
-    public IObservable<IChangeSet<Project>> Projects { get; }
+    private Project BindAndInitialiseConversations(Project project)
+    {
+        IDbOptions<Conversation> conversationDbOptions = new LambdaBasedDbOption<Conversation>(
+            path => new Conversation
+            {
+                Project = project,
+                Name = "New conversation",
+                ConversationPoints = new SourceList<ConversationPoint>()
+            },
+            conversation => conversation
+        );
 
-    private readonly SourceList<Project> projects;
-    private readonly string projectsPath;
-    private readonly IFileAccess fileAccess;
-    private readonly OnHarnessShutdownCallback onHarnessShutdownCallback;
+        var conversationDirectory = dbProvider.CreateDbDirectory(
+            Path.Combine(project.Path, FileConstants.ProjectConversationsDir),
+            conversationDbOptions
+        );
+
+        return new Project
+        {
+            Name = project.Name,
+            Path = project.Path,
+            Global = project.Global,
+            Conversations = conversationDirectory.AsObservable
+                .Connect()
+                .Transform(dbFile => dbFile.AsObservable)
+                .AsObservableList()
+        };
+    }
 
     /// <summary>
     /// Creates a new project and ensures its synchronised to the file system.
@@ -108,23 +103,14 @@ public class FileSynchronisedProjectStore
     /// <returns>The new project.</returns>
     public Project CreateNewProject(string name)
     {
-        lock (projects)
+        var value = new Project
         {
-            if (projects.Items.Any(p => p.Name == name))
-            {
-                throw new ArgumentException($"Project with the name ${name} already exists.");
-            }
-
-            var project = new Project
-            {
-                Name = name,
-                Path = PathMaker.FindUniquePath(fileAccess, projectsPath, name),
-                Global = true
-            };
-            // Adding it automatically creates and serialises the project
-            projects.Add(project);
-            return project;
-        }
+            Name = name,
+            Path = PathMaker.FindUniquePath(fileAccess, projectsPath, name),
+            Global = true
+        };
+        dbDirectory.Create(name, value);
+        return value;
     }
 
     /// <summary>
@@ -134,98 +120,26 @@ public class FileSynchronisedProjectStore
     /// <param name="project">The project to delete.</param>
     public void DeleteProject(Project project)
     {
-        lock (projects)
+        dbDirectory.Delete(project);
+    }
+
+    private static IChildPathTransformer ProjectPathFileTransformer = new ProjectPathFileTransformerImpl();
+
+    private sealed class ProjectPathFileTransformerImpl : IChildPathTransformer
+    {
+        public string? TransformFromChildPath(string dirpath)
         {
-            // will automatically delete file contents via observers
-            projects.Remove(project);
+            return Path.Combine(dirpath, FileConstants.ProjectFileName);
         }
-    }
 
-    private void Reserialise(Project projectToSerialise)
-    {
-        lock (projects)
+        public string TransformToChildPath(string filePath)
         {
-            if (!projects.Items.Contains(projectToSerialise))
-            {
-                return;
-            }
+            if (Path.GetFileName(filePath) != FileConstants.ProjectFileName)
+                throw new ArgumentException($"Given filePath '${filePath}' is not actually a valid project file path.");
 
-            try
-            {
-                fileAccess.CreateDirectory(projectToSerialise.Path);
-                var projectJson = JsonSerializer.Serialize(projectToSerialise, JsonSerializerOptions);
-                fileAccess.WriteAllText(Path.Combine(projectToSerialise.Path, FileConstants.ProjectFileName),
-                    projectJson);
-            }
-            catch (Exception ex)
-            {
-                Trace.TraceError($"Failed to serialise project ${projectToSerialise}", ex);
-            }
+            return Path.GetDirectoryName(filePath) ??
+                   throw new ArgumentException(
+                       $"Given filePath '${filePath}' is not actually a valid project file path.");
         }
-    }
-
-    private void Delete(Project project)
-    {
-        lock (projects)
-        {
-            try
-            {
-                fileAccess.DeleteDirectory(project.Path, true);
-            }
-            catch (Exception ex)
-            {
-                Trace.TraceError($"Failed to delete project ${project}", ex);
-            }
-        }
-    }
-
-    private void ReserialiseConversation(Conversation conversation)
-    {
-        lock (projects)
-        {
-            if (!projects.Items.Contains(conversation.Project))
-            {
-                return;
-            }
-
-            try
-            {
-                fileAccess.CreateDirectory(GetConversationsPath(conversation.Project));
-                var serializerOptions = new JsonSerializerOptions(JsonSerializerOptions);
-                serializerOptions.Converters.Add(new ExistingElementStorageConverter([conversation.Project]));
-                var projectJson = JsonSerializer.Serialize(conversation, JsonSerializerOptions);
-                fileAccess.WriteAllText(GetConversationPath(conversation), projectJson);
-            }
-            catch (Exception ex)
-            {
-                Trace.TraceError($"Failed to serialise conversation ${conversation}", ex);
-            }
-        }
-    }
-
-    private void DeleteConversation(Conversation conversation)
-    {
-        lock (projects)
-        {
-            try
-            {
-                fileAccess.DeleteFile(GetConversationPath(conversation));
-            }
-            catch (Exception ex)
-            {
-                Trace.TraceError($"Failed to delete conversation ${conversation}", ex);
-            }
-        }
-    }
-
-    private static string GetConversationsPath(Project project)
-    {
-        return Path.Combine(project.Path, FileConstants.ProjectConversationsDir);
-    }
-
-    private static string GetConversationPath(Conversation conversation)
-    {
-        return Path.Combine(conversation.Project.Path, FileConstants.ProjectConversationsDir,
-            PathMaker.MakeFileName(conversation.Name));
     }
 }

@@ -47,7 +47,7 @@ public class DatabaseBinder
         return disposable;
     }
 
-    private void RecursiveBind(ObservableObject obj, Action invalidateAction, CompositeDisposable disposable,
+    private static void RecursiveBind(ObservableObject obj, Action invalidateAction, CompositeDisposable disposable,
         HashSet<object> visitedObjects)
     {
         if (!visitedObjects.Add(obj))
